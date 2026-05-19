@@ -149,12 +149,13 @@ The frontend is prepared for deployment at [https://psyblr.vercel.app/](https://
 VITE_API_BASE_URL=https://your-deployed-psyblr-worker.workers.dev
 ```
 
-5. Deploy.
+5. Deploy the Cloudflare Worker separately and make sure the URL above is the Worker origin, not the Vercel frontend URL.
+6. Deploy.
 
 Notes:
 
 - `VITE_API_BASE_URL` should point to the deployed Psyblr Worker origin that exposes `/api/rooms`, `/api/rooms/join`, `/api/rooms/resume`, and the room WebSocket route.
-- If the frontend and backend eventually share the same origin behind a proxy, the frontend can fall back to same-origin requests automatically.
+- If `VITE_API_BASE_URL` is missing on Vercel, `Create room` and `Join room` will fail because the frontend will not have a live Worker API to talk to.
 - The Worker now sends CORS headers for localhost development and `https://psyblr.vercel.app`, plus `psyblr-*.vercel.app` preview-style origins.
 - Production metadata, canonical URLs, Open Graph tags, and the web manifest are already wired to `https://psyblr.vercel.app/`.
 
@@ -199,7 +200,7 @@ npm run dev
 
 - The web app imports shared rules from `@psyblr/game-engine`.
 - The backend keeps room-authoritative state inside Durable Objects and has typed contracts for room creation, joining, resuming, readiness, setup, round locks, replenishment, and phase progression.
-- The frontend uses `VITE_API_BASE_URL` when provided, uses the local Worker automatically on `localhost`, and otherwise falls back to same-origin requests for production-style deployments.
+- The frontend uses `VITE_API_BASE_URL` in deployed environments and uses the local Worker automatically on `localhost`.
 - The frontend only renders the local player's private hand, pool, and budget details. Opponent hidden state is never included in public room snapshots.
 - Room sessions are saved in browser storage so a page refresh can automatically reclaim the same seat with the existing session token.
 - If both players disconnect, the Durable Object preserves match state for 30 minutes. If no one reconnects before that timeout, the abandoned room is deleted.
