@@ -141,8 +141,8 @@ Use the returned `roomCode`, `playerId`, and `sessionToken` to join the room and
 The frontend is prepared for deployment at [https://psyblr.vercel.app/](https://psyblr.vercel.app/).
 
 1. Import this monorepo into Vercel.
-2. Set the project Root Directory to `apps/web`.
-3. Keep the Vite framework preset. The project already includes [apps/web/vercel.json](/Users/deepsheth/Documents/GitHub/psyblr/apps/web/vercel.json).
+2. You can deploy from the repo root directly now. The root [vercel.json](/Users/deepsheth/Documents/GitHub/psyblr/vercel.json) builds the shared engine plus `apps/web` and points Vercel at `apps/web/dist`.
+3. If you prefer using `apps/web` as the Vercel Root Directory instead, the app-level [apps/web/vercel.json](/Users/deepsheth/Documents/GitHub/psyblr/apps/web/vercel.json) still works too.
 4. Add the required production environment variable:
 
 ```bash
