@@ -1,0 +1,18 @@
+{
+  "name": "Psyblr",
+  "short_name": "Psyblr",
+  "id": "https://psyblr.vercel.app/",
+  "description": "A premium online 2-player strategy game with live rooms, hidden hands, budget drafting, and wickets.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f8ff",
+  "theme_color": "#dfe8f7",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

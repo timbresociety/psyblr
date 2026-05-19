@@ -1,33 +1,26 @@
 {
-  "name": "card-cricket",
+  "name": "psyblr",
   "private": true,
   "version": "0.1.0",
-  "description": "Card Cricket is a premium local pass-device browser game built with React, TypeScript, Vite, and Tailwind CSS.",
+  "description": "Psyblr monorepo containing the web app, backend worker scaffold, and shared game engine.",
   "type": "module",
   "engines": {
     "node": ">=18.18.0"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "dev:web": "npm run dev --workspace @psyblr/web",
+    "dev:server": "npm run dev --workspace @psyblr/server",
+    "dev": "concurrently -n web,server -c cyan,magenta \"npm run dev:web\" \"npm run dev:server\"",
+    "build": "npm run build --workspace @psyblr/game-engine && npm run check --workspace @psyblr/server && npm run build --workspace @psyblr/web",
+    "preview": "npm run preview --workspace @psyblr/web",
+    "test": "npm run test --workspace @psyblr/game-engine && npm run test --workspace @psyblr/server && npm run test --workspace @psyblr/web",
+    "test:watch": "npm run test:watch --workspace @psyblr/web"
   },
   "devDependencies": {
-    "@types/node": "^22.9.0",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.14",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.10",
-    "vitest": "^2.1.4"
+    "concurrently": "^9.2.1"
   }
 }

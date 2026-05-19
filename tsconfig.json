@@ -2,10 +2,13 @@
   "files": [],
   "references": [
     {
-      "path": "./tsconfig.app.json"
+      "path": "./packages/game-engine"
     },
     {
-      "path": "./tsconfig.node.json"
+      "path": "./apps/web"
+    },
+    {
+      "path": "./apps/server"
     }
   ]
 }

@@ -1,79 +1,207 @@
-# Card Cricket
+# Psyblr
 
-Card Cricket is a local 2-player browser game built with React, TypeScript, Vite, and Tailwind CSS. It is designed for pass-device play, keeps hidden information off shared screens, and runs entirely in local browser state with no backend.
+Psyblr is a monorepo for a strategy card game. It currently includes the playable React web app, a shared pure TypeScript game engine, and a Cloudflare Worker plus Durable Object backend for authoritative 2-player realtime rooms.
 
-## Stack
+## Repository structure
 
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- Vitest
+```text
+.
+├── apps
+│   ├── server
+│   │   ├── src
+│   │   │   ├── durable-objects
+│   │   │   │   └── PsyblrRoom.ts
+│   │   │   └── index.ts
+│   │   ├── package.json
+│   │   ├── tsconfig.json
+│   │   └── wrangler.toml
+│   └── web
+│       ├── public
+│       ├── src
+│       │   ├── components
+│       │   ├── test
+│       │   ├── App.tsx
+│       │   ├── index.css
+│       │   └── main.tsx
+│       ├── index.html
+│       ├── package.json
+│       ├── tailwind.config.ts
+│       ├── tsconfig.app.json
+│       ├── tsconfig.json
+│       ├── tsconfig.node.json
+│       ├── vercel.json
+│       └── vite.config.ts
+├── packages
+│   └── game-engine
+│       ├── src
+│       │   ├── deck.ts
+│       │   ├── game.ts
+│       │   ├── index.ts
+│       │   └── types.ts
+│       ├── package.json
+│       └── tsconfig.json
+├── package.json
+└── tsconfig.base.json
+```
 
-## Local setup
+## Packages
 
-1. Install dependencies:
+- `apps/web`: the current Psyblr frontend built with React, TypeScript, Vite, and Tailwind CSS.
+- `packages/game-engine`: shared pure TypeScript rules, validation, reducer logic, deck helpers, and game types.
+- `apps/server`: Cloudflare Worker entrypoint plus one Durable Object per Psyblr room for multiplayer state.
+
+## Workspace commands
+
+Install dependencies from the repo root:
 
 ```bash
 npm install
 ```
 
-2. Start the development server:
+Start the full local stack from the repo root:
 
 ```bash
 npm run dev
 ```
 
-3. Run tests:
+This runs both services together:
+
+- `apps/web` with Vite on [http://127.0.0.1:5173](http://127.0.0.1:5173)
+- `apps/server` with Wrangler dev on [http://127.0.0.1:8787](http://127.0.0.1:8787)
+
+Run only the web frontend:
+
+```bash
+npm run dev:web
+```
+
+Run only the Worker backend:
+
+```bash
+npm run dev:server
+```
+
+Run the current test suite:
 
 ```bash
 npm run test
 ```
 
-4. Create a production build:
+This root test command includes:
+
+- `packages/game-engine`
+- `apps/server`
+- `apps/web`
+
+Build the shared game engine, type-check the server, and build the web app:
 
 ```bash
 npm run build
 ```
 
-## Game flow
+Preview the production web build:
 
-- The app opens on a pass-device screen before the first secret setup.
-- Player 1 secretly chooses 5 black starting cards.
-- Player 2 secretly chooses 5 red starting cards.
-- The app shows another pass-device screen before revealing only the total starting spend for each player.
+```bash
+npm run preview
+```
+
+## Workspace-specific commands
+
+Check the Cloudflare Worker server:
+
+```bash
+npm run check --workspace @psyblr/server
+```
+
+Start the Worker locally with Wrangler:
+
+```bash
+npm run dev --workspace @psyblr/server
+```
+
+The local Worker exposes:
+
+- `POST /api/rooms` to create a room
+- `POST /api/rooms/join` to join by room code
+- `POST /api/rooms/resume` to reclaim a saved seat after refresh
+- `GET /api/rooms/:code/socket?playerId=...&sessionToken=...` to open a room WebSocket
+
+Example local flow:
+
+```bash
+curl -X POST http://127.0.0.1:8787/api/rooms \
+  -H 'content-type: application/json' \
+  -d '{"type":"create_room","displayName":"Host"}'
+```
+
+Use the returned `roomCode`, `playerId`, and `sessionToken` to join the room and then connect a WebSocket client.
+
+## Vercel deployment for `apps/web`
+
+The frontend is prepared for deployment at [https://psyblr.vercel.app/](https://psyblr.vercel.app/).
+
+1. Import this monorepo into Vercel.
+2. Set the project Root Directory to `apps/web`.
+3. Keep the Vite framework preset. The project already includes [apps/web/vercel.json](/Users/deepsheth/Documents/GitHub/psyblr/apps/web/vercel.json).
+4. Add the required production environment variable:
+
+```bash
+VITE_API_BASE_URL=https://your-deployed-psyblr-worker.workers.dev
+```
+
+5. Deploy.
+
+Notes:
+
+- `VITE_API_BASE_URL` should point to the deployed Psyblr Worker origin that exposes `/api/rooms`, `/api/rooms/join`, `/api/rooms/resume`, and the room WebSocket route.
+- If the frontend and backend eventually share the same origin behind a proxy, the frontend can fall back to same-origin requests automatically.
+- The Worker now sends CORS headers for localhost development and `https://psyblr.vercel.app`, plus `psyblr-*.vercel.app` preview-style origins.
+- Production metadata, canonical URLs, Open Graph tags, and the web manifest are already wired to `https://psyblr.vercel.app/`.
+
+## Full local development flow
+
+1. Install dependencies once from the repo root.
+
+```bash
+npm install
+```
+
+2. Start the full stack in two processes from one command.
+
+```bash
+npm run dev
+```
+
+3. Open the frontend in your browser.
+
+- Web app: [http://127.0.0.1:5173](http://127.0.0.1:5173)
+- Worker API: [http://127.0.0.1:8787](http://127.0.0.1:8787)
+
+4. For a two-player local test, open the web app in two browser windows or one normal window plus one private window.
+
+5. Use `Create room` in one client and `Join room` in the other.
+
+## Web app flow
+
+- The home screen offers `Create room` and `Join room` for two separate players on different browsers or devices.
+- Player 1 is assigned the black pool and attacks odd rounds.
+- Player 2 is assigned the red pool and attacks even rounds.
+- Both players ready up in the live lobby before setup begins.
+- Each player secretly chooses 5 starting cards on their own client.
+- Only the opening spend totals are revealed publicly after both starting hands are submitted.
 - There are 10 rounds total.
-- Player 1 attacks in odd rounds.
-- Player 2 attacks in even rounds.
-- After each defense choice, the app pauses on a pass-device screen before publicly revealing the round result.
+- After both players lock a round card, the server resolves the round and broadcasts the public result.
 - After rounds 1 to 5, each player secretly buys exactly 1 extra card from their remaining pool.
 - Each player ends the game with exactly 10 selected cards and total spend of at most 69.
 - Same rank on attack and defense is a wicket, which stops that attacker from scoring on all future attack rounds.
 
-## Project structure
+## Notes
 
-- `src/lib/deck.ts`: deck generation and card value helpers
-- `src/lib/game.ts`: typed game rules, validation, reducer, and round resolution
-- `src/components/*`: UI screens and reusable panels
-- `src/test/game.test.ts`: core rules coverage
-
-## Vercel deployment
-
-This app is ready for static deployment on Vercel.
-
-1. Push the repo to GitHub.
-2. Import the repository into Vercel.
-3. Confirm these settings:
-
-- Framework preset: `Vite`
-- Install command: `npm install`
-- Build command: `npm run build`
-- Output directory: `dist`
-
-4. Deploy.
-
-Notes:
-
-- `vercel.json` already sets the framework, install command, build command, and output directory.
-- Production metadata, favicon, and social preview image are included via `index.html` and the `public/` assets.
-- Generated folders like `dist/` and `node_modules/` are not meant to be committed and are ignored for normal development.
+- The web app imports shared rules from `@psyblr/game-engine`.
+- The backend keeps room-authoritative state inside Durable Objects and has typed contracts for room creation, joining, resuming, readiness, setup, round locks, replenishment, and phase progression.
+- The frontend uses `VITE_API_BASE_URL` when provided, uses the local Worker automatically on `localhost`, and otherwise falls back to same-origin requests for production-style deployments.
+- The frontend only renders the local player's private hand, pool, and budget details. Opponent hidden state is never included in public room snapshots.
+- Room sessions are saved in browser storage so a page refresh can automatically reclaim the same seat with the existing session token.
+- If both players disconnect, the Durable Object preserves match state for 30 minutes. If no one reconnects before that timeout, the abandoned room is deleted.
+- During reconnects, the UI shows local reconnect status, persistent opponent connection badges, and a short opponent disconnected or reconnected notice when presence changes.
+- The repo is set up as an npm workspace monorepo and is ready for further expansion.

@@ -1,0 +1,9 @@
+export const API_PREFIX = '/api';
+export const INTERNAL_CREATE_ROOM_PATH = '/internal/create-room';
+export const INTERNAL_JOIN_ROOM_PATH = '/internal/join-room';
+export const INTERNAL_RESUME_ROOM_PATH = '/internal/resume-room';
+export const INTERNAL_SOCKET_PATH = '/internal/socket';
+export const ROOM_CODE_LENGTH = 6;
+export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const ROOM_STATE_STORAGE_KEY = 'psyblr-room-state';
+export const ABANDONED_ROOM_TIMEOUT_MS = 30 * 60 * 1000;
