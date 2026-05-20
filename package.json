@@ -16,7 +16,9 @@
     "dev:server": "npm run dev --workspace @psyblr/server",
     "dev": "concurrently -n web,server -c cyan,magenta \"npm run dev:web\" \"npm run dev:server\"",
     "build:web": "npm run build --workspace @psyblr/game-engine && npm run build --workspace @psyblr/web",
+    "build:server": "npm run build --workspace @psyblr/game-engine && npm run check --workspace @psyblr/server",
     "build": "npm run build --workspace @psyblr/game-engine && npm run check --workspace @psyblr/server && npm run build --workspace @psyblr/web",
+    "deploy:server": "npx wrangler deploy --config wrangler.toml",
     "preview": "npm run preview --workspace @psyblr/web",
     "test": "npm run test --workspace @psyblr/game-engine && npm run test --workspace @psyblr/server && npm run test --workspace @psyblr/web",
     "test:watch": "npm run test:watch --workspace @psyblr/web"

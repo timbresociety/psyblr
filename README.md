@@ -136,6 +136,69 @@ curl -X POST http://127.0.0.1:8787/api/rooms \
 
 Use the returned `roomCode`, `playerId`, and `sessionToken` to join the room and then connect a WebSocket client.
 
+## Cloudflare deployment for `apps/server`
+
+The Psyblr backend must be deployed to Cloudflare Workers before the Vercel frontend can create or join live rooms.
+
+There are two supported deployment paths:
+
+1. Repo-root deployment for Cloudflare CI or local monorepo deploys.
+
+```bash
+npm run build:server
+npm run deploy:server
+```
+
+2. Direct server-workspace deployment.
+
+```bash
+cd apps/server
+npx wrangler login
+npx wrangler deploy
+```
+
+If you are using Cloudflare’s Git-based build pipeline from the monorepo root, keep these settings:
+
+- Build command: `npm run build:server`
+- Deploy command: `npx wrangler deploy`
+
+The repo root now includes [wrangler.toml](/Users/deepsheth/Documents/GitHub/psyblr/wrangler.toml) so Cloudflare can deploy from the workspace root without hitting Wrangler’s monorepo detection error.
+
+For first-time local auth, log into Cloudflare once:
+
+```bash
+npx wrangler login
+```
+
+Then deploy the Worker and Durable Object backend.
+
+```bash
+npm run deploy:server
+```
+
+3. Copy the deployed Worker URL from Wrangler output.
+
+Example:
+
+```bash
+https://psyblr-server.your-account.workers.dev
+```
+
+4. In Vercel, add this environment variable for both Production and Preview:
+
+```bash
+VITE_API_BASE_URL=https://psyblr-server.your-account.workers.dev
+```
+
+5. Redeploy the frontend after saving the Vercel environment variable.
+
+Notes:
+
+- The repo-root [wrangler.toml](/Users/deepsheth/Documents/GitHub/psyblr/wrangler.toml) exists specifically so Cloudflare can deploy the Worker from the monorepo root.
+- [apps/server/wrangler.toml](/Users/deepsheth/Documents/GitHub/psyblr/apps/server/wrangler.toml) still supports direct `apps/server` local workflows and mirrors the same Durable Object binding, migration, and CORS origins.
+- Preview deployments under `psyblr-*.vercel.app` are also accepted by the Worker CORS policy.
+- If you later move the frontend to a different domain, update `CORS_ALLOWED_ORIGINS` in both [wrangler.toml](/Users/deepsheth/Documents/GitHub/psyblr/wrangler.toml) and [apps/server/wrangler.toml](/Users/deepsheth/Documents/GitHub/psyblr/apps/server/wrangler.toml), then redeploy the Worker.
+
 ## Vercel deployment for `apps/web`
 
 The frontend is prepared for deployment at [https://psyblr.vercel.app/](https://psyblr.vercel.app/).

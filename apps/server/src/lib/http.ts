@@ -5,22 +5,49 @@ const LOCAL_ALLOWED_ORIGINS = new Set([
   'http://127.0.0.1:5173',
 ]);
 
-function isAllowedOrigin(origin: string): boolean {
+function readConfiguredOrigins(value: string | undefined): Set<string> {
+  if (!value) {
+    return new Set();
+  }
+
+  return new Set(
+    value
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
+}
+
+function isPreviewVercelHostname(hostname: string): boolean {
+  return hostname.startsWith('psyblr-') && hostname.endsWith('.vercel.app');
+}
+
+function isAllowedOrigin(origin: string, configuredOrigins: Set<string>): boolean {
   if (LOCAL_ALLOWED_ORIGINS.has(origin)) {
+    return true;
+  }
+
+  if (configuredOrigins.has(origin)) {
     return true;
   }
 
   try {
     const url = new URL(origin);
-    return url.protocol === 'https:' && (url.hostname === 'psyblr.vercel.app' || url.hostname.startsWith('psyblr-') && url.hostname.endsWith('.vercel.app'));
+    return url.protocol === 'https:' && (url.hostname === 'psyblr.vercel.app' || isPreviewVercelHostname(url.hostname));
   } catch {
     return false;
   }
 }
 
-export function applyCorsHeaders(response: Response, request: Request): Response {
+export function applyCorsHeaders(
+  response: Response,
+  request: Request,
+  corsAllowedOrigins?: string,
+): Response {
   const origin = request.headers.get('origin');
-  if (!origin || !isAllowedOrigin(origin)) {
+  const configuredOrigins = readConfiguredOrigins(corsAllowedOrigins);
+
+  if (!origin || !isAllowedOrigin(origin, configuredOrigins)) {
     return response;
   }
 
@@ -38,12 +65,12 @@ export function applyCorsHeaders(response: Response, request: Request): Response
   });
 }
 
-export function corsPreflightResponse(request: Request): Response {
+export function corsPreflightResponse(request: Request, corsAllowedOrigins?: string): Response {
   const response = new Response(null, {
     status: 204,
   });
 
-  return applyCorsHeaders(response, request);
+  return applyCorsHeaders(response, request, corsAllowedOrigins);
 }
 
 export async function readJson<T>(request: Request): Promise<T> {

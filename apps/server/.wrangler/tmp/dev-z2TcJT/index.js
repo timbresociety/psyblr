@@ -248,21 +248,38 @@ var LOCAL_ALLOWED_ORIGINS = /* @__PURE__ */ new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173"
 ]);
-function isAllowedOrigin(origin) {
+function readConfiguredOrigins(value) {
+  if (!value) {
+    return /* @__PURE__ */ new Set();
+  }
+  return new Set(
+    value.split(",").map((origin) => origin.trim()).filter(Boolean)
+  );
+}
+__name(readConfiguredOrigins, "readConfiguredOrigins");
+function isPreviewVercelHostname(hostname) {
+  return hostname.startsWith("psyblr-") && hostname.endsWith(".vercel.app");
+}
+__name(isPreviewVercelHostname, "isPreviewVercelHostname");
+function isAllowedOrigin(origin, configuredOrigins) {
   if (LOCAL_ALLOWED_ORIGINS.has(origin)) {
+    return true;
+  }
+  if (configuredOrigins.has(origin)) {
     return true;
   }
   try {
     const url = new URL(origin);
-    return url.protocol === "https:" && (url.hostname === "psyblr.vercel.app" || url.hostname.startsWith("psyblr-") && url.hostname.endsWith(".vercel.app"));
+    return url.protocol === "https:" && (url.hostname === "psyblr.vercel.app" || isPreviewVercelHostname(url.hostname));
   } catch {
     return false;
   }
 }
 __name(isAllowedOrigin, "isAllowedOrigin");
-function applyCorsHeaders(response, request) {
+function applyCorsHeaders(response, request, corsAllowedOrigins) {
   const origin = request.headers.get("origin");
-  if (!origin || !isAllowedOrigin(origin)) {
+  const configuredOrigins = readConfiguredOrigins(corsAllowedOrigins);
+  if (!origin || !isAllowedOrigin(origin, configuredOrigins)) {
     return response;
   }
   const headers = new Headers(response.headers);
@@ -278,11 +295,11 @@ function applyCorsHeaders(response, request) {
   });
 }
 __name(applyCorsHeaders, "applyCorsHeaders");
-function corsPreflightResponse(request) {
+function corsPreflightResponse(request, corsAllowedOrigins) {
   const response = new Response(null, {
     status: 204
   });
-  return applyCorsHeaders(response, request);
+  return applyCorsHeaders(response, request, corsAllowedOrigins);
 }
 __name(corsPreflightResponse, "corsPreflightResponse");
 async function readJson(request) {
@@ -1310,16 +1327,16 @@ var src_default = {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS" && (url.pathname === `${API_PREFIX}/rooms` || url.pathname === `${API_PREFIX}/rooms/join` || url.pathname === `${API_PREFIX}/rooms/resume`)) {
-      return corsPreflightResponse(request);
+      return corsPreflightResponse(request, env.CORS_ALLOWED_ORIGINS);
     }
     if (request.method === "POST" && url.pathname === `${API_PREFIX}/rooms`) {
-      return applyCorsHeaders(await handleCreateRoom(request, env), request);
+      return applyCorsHeaders(await handleCreateRoom(request, env), request, env.CORS_ALLOWED_ORIGINS);
     }
     if (request.method === "POST" && url.pathname === `${API_PREFIX}/rooms/join`) {
-      return applyCorsHeaders(await handleJoinRoom(request, env), request);
+      return applyCorsHeaders(await handleJoinRoom(request, env), request, env.CORS_ALLOWED_ORIGINS);
     }
     if (request.method === "POST" && url.pathname === `${API_PREFIX}/rooms/resume`) {
-      return applyCorsHeaders(await handleResumeRoom(request, env), request);
+      return applyCorsHeaders(await handleResumeRoom(request, env), request, env.CORS_ALLOWED_ORIGINS);
     }
     const socketMatch = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]+)\/socket$/);
     if (request.method === "GET" && socketMatch) {
@@ -1386,7 +1403,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-IcHLhw/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-JaqYb9/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -1418,7 +1435,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-IcHLhw/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-JaqYb9/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -12,6 +12,7 @@ import { generateRoomCode, normalizeRoomCode } from './lib/room-code';
 
 export interface Env {
   PSYBLR_ROOM: DurableObjectNamespace;
+  CORS_ALLOWED_ORIGINS?: string;
 }
 
 function getRoomStub(env: Env, roomCode: string): DurableObjectStub {
@@ -122,19 +123,19 @@ export default {
         url.pathname === `${API_PREFIX}/rooms/join` ||
         url.pathname === `${API_PREFIX}/rooms/resume`)
     ) {
-      return corsPreflightResponse(request);
+      return corsPreflightResponse(request, env.CORS_ALLOWED_ORIGINS);
     }
 
     if (request.method === 'POST' && url.pathname === `${API_PREFIX}/rooms`) {
-      return applyCorsHeaders(await handleCreateRoom(request, env), request);
+      return applyCorsHeaders(await handleCreateRoom(request, env), request, env.CORS_ALLOWED_ORIGINS);
     }
 
     if (request.method === 'POST' && url.pathname === `${API_PREFIX}/rooms/join`) {
-      return applyCorsHeaders(await handleJoinRoom(request, env), request);
+      return applyCorsHeaders(await handleJoinRoom(request, env), request, env.CORS_ALLOWED_ORIGINS);
     }
 
     if (request.method === 'POST' && url.pathname === `${API_PREFIX}/rooms/resume`) {
-      return applyCorsHeaders(await handleResumeRoom(request, env), request);
+      return applyCorsHeaders(await handleResumeRoom(request, env), request, env.CORS_ALLOWED_ORIGINS);
     }
 
     const socketMatch = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]+)\/socket$/);
