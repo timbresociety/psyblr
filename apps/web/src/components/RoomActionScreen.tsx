@@ -36,15 +36,15 @@ export function RoomActionScreen({
 
   if (alreadyLocked) {
     return (
-      <section className="liquid-panel liquid-panel--hidden screen-entrance px-6 py-7 sm:px-8">
+      <section className="liquid-panel liquid-panel--hidden screen-entrance flex h-full min-h-0 flex-col px-5 py-5 sm:px-6">
         <span className="glass-chip glass-chip--hidden">Private player surface</span>
-        <h2 className="liquid-title mt-4 text-3xl sm:text-4xl">
+        <h2 className="liquid-title mt-3 text-3xl sm:text-4xl">
           {mode === 'setup' ? 'Opening hand locked' : mode === 'round' ? 'Round card locked' : 'Replenishment locked'}
         </h2>
-        <p className="body-copy mt-3 max-w-2xl">
+        <p className="body-copy mt-2 max-w-2xl">
           Your intent is safely on the server. Keep this screen open and wait for the opponent to finish their action.
         </p>
-        <p className="mt-3 text-sm leading-6 text-[color:var(--ink-500)]">
+        <p className="mt-2 text-sm leading-6 text-[color:var(--ink-500)]">
           {mode === 'setup'
             ? 'The next public beat is the opening spend reveal.'
             : mode === 'round'
@@ -52,7 +52,7 @@ export function RoomActionScreen({
               : 'The next public beat is the replenishment confirmation before the room moves on.'}
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           <span className="glass-chip">Round {roomState.roundNumber}</span>
           <span className="glass-chip">Budget left {privateState.budgetRemaining}</span>
           <span className="glass-chip">Hand size {privateState.handCardIds.length}</span>

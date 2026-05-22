@@ -161,6 +161,29 @@ function getPlayerLabel(playerId: PlayerId): string {
   return playerId === 'player1' ? 'Player 1' : 'Player 2';
 }
 
+function getSessionPhaseLabel(phase: RoomPhase | null): string {
+  switch (phase) {
+    case 'lobby':
+      return 'Waiting Lobby';
+    case 'setup':
+      return 'Starting Draft';
+    case 'opening-reveal':
+      return 'Opening Reveal';
+    case 'round':
+      return 'Card Lock';
+    case 'round-reveal':
+      return 'Round Reveal';
+    case 'replenishment':
+      return 'Replenishment';
+    case 'replenishment-reveal':
+      return 'Replenishment Locked';
+    case 'finished':
+      return 'Final Result';
+    default:
+      return 'Connecting';
+  }
+}
+
 function getLocalPlayer(roomState: PublicMatchStateView | null, localPlayerId: PlayerId | null) {
   if (!roomState || !localPlayerId) {
     return null;
@@ -201,12 +224,12 @@ function PublicStatusScreen({
   onAction?: () => void;
 }) {
   return (
-    <section className="liquid-panel liquid-panel--public screen-entrance px-6 py-7 sm:px-8">
-      <div className="flex flex-col gap-5 border-b border-white/40 pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <section className="liquid-panel liquid-panel--public screen-entrance flex h-full min-h-0 flex-col px-5 py-5 sm:px-6">
+      <div className="flex flex-col gap-4 border-b border-white/40 pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <span className="glass-chip glass-chip--public">{eyebrow}</span>
-          <h2 className="liquid-title mt-4 text-3xl sm:text-4xl">{title}</h2>
-          <p className="body-copy mt-3 max-w-3xl">{description}</p>
+          <h2 className="liquid-title mt-3 text-3xl sm:text-4xl">{title}</h2>
+          <p className="body-copy mt-2 max-w-3xl">{description}</p>
         </div>
 
         {onAction && actionLabel ? (
@@ -217,7 +240,7 @@ function PublicStatusScreen({
       </div>
 
       {badges && badges.length > 0 ? (
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           {badges.map((badge) => (
             <span key={badge} className="glass-chip">
               {badge}
@@ -247,6 +270,8 @@ export default function App() {
     'ready' | 'setup' | 'round' | 'replenishment' | 'phase' | null
   >(null);
   const [phaseReadyPending, setPhaseReadyPending] = useState(false);
+  const [roomViewportTab, setRoomViewportTab] = useState<'play' | 'board' | 'history'>('play');
+  const [desktopSidebarTab, setDesktopSidebarTab] = useState<'board' | 'history'>('board');
 
   const socketRef = useRef<WebSocket | null>(null);
   const shouldReconnectRef = useRef(false);
@@ -257,6 +282,7 @@ export default function App() {
   const localPlayerId = session?.playerId ?? null;
   const localPlayer = getLocalPlayer(publicState, localPlayerId);
   const latestRound = getLatestRound(publicState);
+  const hasHistory = (publicState?.discardHistory.length ?? 0) > 0;
   const connectionLabel = getConnectionLabel(connectionState);
   const interactionsDisabled = connectionState !== 'connected';
   const connectionBannerMessage =
@@ -362,6 +388,11 @@ export default function App() {
     const timeoutId = window.setTimeout(() => setPresenceNotice(null), 4800);
     return () => window.clearTimeout(timeoutId);
   }, [presenceNotice]);
+
+  useEffect(() => {
+    setRoomViewportTab('play');
+    setDesktopSidebarTab('board');
+  }, [publicState?.phase, session?.roomCode]);
 
   useEffect(() => {
     if (!session) {
@@ -927,49 +958,108 @@ export default function App() {
   }
 
   return (
-    <Layout>
-      <header className="liquid-panel liquid-panel--hero screen-entrance px-6 py-6 sm:px-8 sm:py-7">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="glass-chip glass-chip--public">Live online room game</span>
-              <span className="glass-chip glass-chip--gold">Server authoritative</span>
-              {session ? <span className="glass-chip">Room {session.roomCode}</span> : null}
+    <Layout mode={session ? 'session' : 'landing'}>
+      {session ? (
+        <header className="liquid-panel liquid-panel--hero screen-entrance session-topbar">
+          <div className="flex w-full items-start justify-between gap-3">
+            <div className="session-topbar-brand">
+              <BrandWordmark size="compact" />
+              <p className="session-topbar-copy">Server-authoritative room. Private hand stays local.</p>
             </div>
-            <div className="mt-5">
-              <BrandWordmark size={session ? 'compact' : 'hero'} />
+
+            <div className="flex shrink-0 gap-2 sm:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setHelpMode('quickstart');
+                  setHelpOpen(true);
+                }}
+                className="chrome-button chrome-button--ghost"
+              >
+                Help
+              </button>
+              <button type="button" onClick={resetToHome} className="chrome-button chrome-button--ghost">
+                Leave
+              </button>
             </div>
-            <p className="body-copy mt-4 max-w-3xl">
-              A premium two-player strategy duel with hidden hands, budget pressure, and live round resolution. Your
-              client only shows your private hand while the server owns the match.
-            </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full flex-wrap gap-2 sm:hidden">
+            <span className="glass-chip glass-chip--public">{getSessionPhaseLabel(publicState?.phase ?? null)}</span>
+            <span className="glass-chip">Room {session.roomCode}</span>
+            {localPlayerId ? (
+              <span className="glass-chip glass-chip--gold">{localPlayer?.displayName ?? getPlayerLabel(localPlayerId)}</span>
+            ) : null}
+          </div>
+
+          <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 lg:justify-center sm:flex">
+            <span className="glass-chip glass-chip--public">{getSessionPhaseLabel(publicState?.phase ?? null)}</span>
+            <span className="glass-chip">Room {session.roomCode}</span>
+            <span className="glass-chip">{connectionLabel}</span>
+            {localPlayerId ? (
+              <span className="glass-chip glass-chip--gold">{localPlayer?.displayName ?? getPlayerLabel(localPlayerId)}</span>
+            ) : null}
+          </div>
+
+          <div className="hidden flex-wrap gap-2 lg:justify-end sm:flex">
             <button
               type="button"
               onClick={() => {
-                setHelpMode(session ? 'quickstart' : 'rules');
+                setHelpMode('quickstart');
                 setHelpOpen(true);
               }}
               className="chrome-button chrome-button--ghost"
             >
-              {session ? 'Game help' : 'Rules and flow'}
+              Game help
             </button>
-            {session ? (
-              <button type="button" onClick={resetToHome} className="chrome-button chrome-button--ghost">
-                Leave room
-              </button>
-            ) : null}
+            <button type="button" onClick={resetToHome} className="chrome-button chrome-button--ghost">
+              Leave room
+            </button>
           </div>
-        </div>
 
-        {errorMessage ? (
-          <div className="mt-6 rounded-[1.5rem] border border-white/50 bg-[rgba(255,143,129,0.18)] px-4 py-4 text-sm leading-6 text-[color:var(--ink-950)] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-            {errorMessage}
+          {errorMessage ? (
+            <div className="basis-full rounded-[1.35rem] border border-white/50 bg-[rgba(255,143,129,0.18)] px-4 py-3 text-sm leading-6 text-[color:var(--ink-950)] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+              {errorMessage}
+            </div>
+          ) : null}
+        </header>
+      ) : (
+        <header className="liquid-panel liquid-panel--hero screen-entrance px-5 py-4 sm:px-6 sm:py-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="glass-chip glass-chip--public">Live online room game</span>
+                <span className="glass-chip glass-chip--gold">Server authoritative</span>
+              </div>
+              <div className="mt-4">
+                <BrandWordmark size="compact" />
+              </div>
+              <p className="body-copy mt-3 max-w-3xl">
+                A premium two-player strategy duel with hidden hands, budget pressure, and live round resolution.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setHelpMode('rules');
+                  setHelpOpen(true);
+                }}
+                className="chrome-button chrome-button--ghost"
+              >
+                Rules and flow
+              </button>
+            </div>
           </div>
-        ) : null}
-      </header>
+
+          {errorMessage ? (
+            <div className="mt-4 rounded-[1.5rem] border border-white/50 bg-[rgba(255,143,129,0.18)] px-4 py-4 text-sm leading-6 text-[color:var(--ink-950)] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+              {errorMessage}
+            </div>
+          ) : null}
+        </header>
+      )}
 
       {!session ? (
         restoreState === 'restoring' ? (
@@ -985,7 +1075,7 @@ export default function App() {
           renderLandingScreen()
         )
       ) : (
-        <>
+        <div className="app-workspace">
           {presenceNotice || connectionState !== 'connected' ? (
             <section
               className={`liquid-panel ${presenceNotice?.tone === 'success' ? 'liquid-panel--success' : 'liquid-panel--neutral'} screen-entrance px-5 py-4`}
@@ -1007,20 +1097,88 @@ export default function App() {
             </section>
           ) : null}
 
-          <Scoreboard
-            roomState={publicState}
-            privateState={privateState}
-            localPlayerId={localPlayerId}
-            connectionLabel={connectionLabel}
-          />
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.32fr)_minmax(320px,0.88fr)]">
-            <div className="flex flex-col gap-6">{renderInRoomContent()}</div>
-            <div className="flex flex-col gap-6">
-              <HistoryPanel history={publicState?.discardHistory ?? []} cardsById={CARDS_BY_ID} />
+          <div className="md:hidden">
+            <div className="liquid-panel liquid-panel--neutral px-2 py-2">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRoomViewportTab('play')}
+                  className={`room-tab-button ${roomViewportTab === 'play' ? 'room-tab-button--active' : ''}`}
+                >
+                  Current phase
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoomViewportTab('board')}
+                  className={`room-tab-button ${roomViewportTab === 'board' ? 'room-tab-button--active' : ''}`}
+                >
+                  Matchboard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoomViewportTab('history')}
+                  className={`room-tab-button ${roomViewportTab === 'history' ? 'room-tab-button--active' : ''}`}
+                >
+                  Archive
+                </button>
+              </div>
             </div>
           </div>
-        </>
+
+          <div className="session-grid">
+            <div className={`${roomViewportTab === 'play' ? 'flex' : 'hidden'} min-h-0 flex-col md:flex`}>
+              {renderInRoomContent()}
+            </div>
+            <div className={`${roomViewportTab === 'board' || roomViewportTab === 'history' ? 'flex' : 'hidden'} session-sidebar md:flex`}>
+              <div className={`${roomViewportTab === 'board' ? 'flex' : 'hidden'} min-h-0 flex-col md:hidden`}>
+                <Scoreboard
+                  roomState={publicState}
+                  privateState={privateState}
+                  localPlayerId={localPlayerId}
+                  connectionLabel={connectionLabel}
+                />
+              </div>
+              <div className={`${roomViewportTab === 'history' ? 'flex' : 'hidden'} min-h-0 flex-1 flex-col md:hidden`}>
+                <HistoryPanel history={publicState?.discardHistory ?? []} cardsById={CARDS_BY_ID} />
+              </div>
+              <div className="hidden min-h-0 flex-col gap-3 md:flex">
+                {hasHistory ? (
+                  <div className="liquid-panel liquid-panel--neutral px-2 py-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDesktopSidebarTab('board')}
+                        className={`room-tab-button ${desktopSidebarTab === 'board' ? 'room-tab-button--active' : ''}`}
+                      >
+                        Matchboard
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDesktopSidebarTab('history')}
+                        className={`room-tab-button ${desktopSidebarTab === 'history' ? 'room-tab-button--active' : ''}`}
+                      >
+                        Archive
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="min-h-0 flex-1">
+                  {desktopSidebarTab === 'history' && hasHistory ? (
+                    <HistoryPanel history={publicState?.discardHistory ?? []} cardsById={CARDS_BY_ID} />
+                  ) : (
+                    <Scoreboard
+                      roomState={publicState}
+                      privateState={privateState}
+                      localPlayerId={localPlayerId}
+                      connectionLabel={connectionLabel}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <HelpModal

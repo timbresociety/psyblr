@@ -36,12 +36,12 @@ export function FinalResultScreen({
       : `${scoreMargin} run${scoreMargin === 1 ? '' : 's'} separated the final scoreline.`;
 
   return (
-    <section className="liquid-panel liquid-panel--success screen-entrance px-6 py-8 sm:px-8">
-      <div className="flex flex-col gap-5 border-b border-white/40 pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <section className="liquid-panel liquid-panel--success screen-entrance phase-shell">
+      <div className="phase-shell-header">
         <div>
-          <p className="section-kicker">Final Result</p>
-          <h2 className="liquid-title mt-4 text-3xl sm:text-4xl">{winnerText}</h2>
-          <p className="body-copy mt-3">{resultSubtitle}</p>
+          <p className="section-kicker">Final result</p>
+          <h2 className="liquid-title mt-3 text-[clamp(2rem,4vw,3rem)]">{winnerText}</h2>
+          <p className="body-copy mt-2">{resultSubtitle}</p>
         </div>
 
         <div className="flex flex-wrap gap-3">
@@ -54,67 +54,87 @@ export function FinalResultScreen({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-3">
-        <article className="glass-stat">
-          <p className="glass-stat-label">Final margin</p>
-          <p className="glass-stat-value">{roomState.winner === 'draw' ? 'Draw' : scoreMargin}</p>
-        </article>
-        <article className="glass-stat">
-          <p className="glass-stat-label">Wickets</p>
-          <p className="glass-stat-value">{wickets}</p>
-        </article>
-        <article className="glass-stat">
-          <p className="glass-stat-label">Rounds revealed</p>
-          <p className="glass-stat-value">{roomState.discardHistory.length}</p>
-        </article>
-      </div>
+      <div className="phase-shell-body">
+        <div className="phase-shell-aside">
+          <div className="phase-stat-grid">
+            <article className="glass-stat">
+              <p className="glass-stat-label">Final margin</p>
+              <p className="glass-stat-value">{roomState.winner === 'draw' ? 'Draw' : scoreMargin}</p>
+            </article>
+            <article className="glass-stat">
+              <p className="glass-stat-label">Wickets</p>
+              <p className="glass-stat-value">{wickets}</p>
+            </article>
+            <article className="glass-stat">
+              <p className="glass-stat-label">Rounds</p>
+              <p className="glass-stat-value">{roomState.discardHistory.length}</p>
+            </article>
+            <article className="glass-stat">
+              <p className="glass-stat-label">Winner</p>
+              <p className="glass-stat-value text-2xl">
+                {roomState.winner === 'draw' ? 'Draw' : roomState.winner === localPlayerId ? 'You' : 'Opponent'}
+              </p>
+            </article>
+          </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        {[localPlayer, opponentPlayer].filter(Boolean).map((player) => (
-          <article key={player?.id} className="liquid-panel liquid-panel--neutral px-5 py-5">
-            <span className="glass-chip">{player?.displayName}</span>
-            <p className="liquid-title mt-4 text-5xl">{player?.score}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className={`glass-chip ${player?.wicketed ? 'glass-chip--hidden' : 'glass-chip--success'}`}>
-                Wicketed: {player?.wicketed ? 'Yes' : 'No'}
-              </span>
-              <span className="glass-chip">Starting spend {player?.startingSpend ?? '••'}</span>
-            </div>
-          </article>
-        ))}
-      </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {[localPlayer, opponentPlayer].filter(Boolean).map((player) => (
+              <article key={player?.id} className="seat-card">
+                <span className="glass-chip">{player?.displayName}</span>
+                <p className="liquid-title mt-3 text-4xl">{player?.score}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className={`glass-chip ${player?.wicketed ? 'glass-chip--hidden' : 'glass-chip--success'}`}>
+                    {player?.wicketed ? 'Wicketed' : 'Live bat'}
+                  </span>
+                  <span className="glass-chip">Spend {player?.startingSpend ?? '••'}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
 
-      {lastRound && lastAttackCard && lastDefenseCard ? (
-        <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <article className="liquid-panel liquid-panel--neutral px-5 py-5">
-            <p className="micro-copy">Last reveal</p>
-            <h3 className="liquid-title mt-3 text-2xl">Round {lastRound.roundNumber} closed the room</h3>
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              <div className={`playing-card ${lastAttackCard.color === 'black' ? 'playing-card--black' : 'playing-card--red'} px-4 py-4`}>
-                <div className="relative z-10">
-                  <p className="playing-card-corner">Attack card</p>
-                  <p className="playing-card-rank mt-2">{lastAttackCard.shortLabel}</p>
-                  <p className="mt-4 text-sm leading-6 opacity-80">Value {lastRound.attackCardValue}</p>
+        <div className="phase-shell-aside">
+          {lastRound && lastAttackCard && lastDefenseCard ? (
+            <article className="phase-block phase-block--hero">
+              <p className="section-kicker">Last reveal</p>
+              <h3 className="liquid-title mt-2 text-2xl">Round {lastRound.roundNumber} closed the room</h3>
+              <div className="mt-4 grid gap-3">
+                <div className={`playing-card ${lastAttackCard.color === 'black' ? 'playing-card--black' : 'playing-card--red'} playing-card--compact px-4 py-4`}>
+                  <div className="relative z-10 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="playing-card-corner">Attack card</p>
+                      <p className="playing-card-rank mt-2">{lastAttackCard.shortLabel}</p>
+                    </div>
+                    <span className="playing-card-value">{lastRound.attackCardValue}</span>
+                  </div>
+                </div>
+                <div className={`playing-card ${lastDefenseCard.color === 'black' ? 'playing-card--black' : 'playing-card--red'} playing-card--compact px-4 py-4`}>
+                  <div className="relative z-10 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="playing-card-corner">Defense card</p>
+                      <p className="playing-card-rank mt-2">{lastDefenseCard.shortLabel}</p>
+                    </div>
+                    <span className="playing-card-value">{lastRound.defenseCardValue}</span>
+                  </div>
                 </div>
               </div>
-              <div className={`playing-card ${lastDefenseCard.color === 'black' ? 'playing-card--black' : 'playing-card--red'} px-4 py-4`}>
-                <div className="relative z-10">
-                  <p className="playing-card-corner">Defense card</p>
-                  <p className="playing-card-rank mt-2">{lastDefenseCard.shortLabel}</p>
-                  <p className="mt-4 text-sm leading-6 opacity-80">Value {lastRound.defenseCardValue}</p>
-                </div>
-              </div>
-            </div>
-          </article>
-          <article className="liquid-panel liquid-panel--success px-5 py-5">
-            <p className="micro-copy">Next move</p>
-            <h3 className="liquid-title mt-3 text-2xl">Run it back in a fresh room</h3>
-            <p className="body-copy mt-3">
-              Psyblr does not reuse finished rooms. A rematch starts by creating a brand-new room code so the server can keep every duel authoritative from the opening draft.
+            </article>
+          ) : (
+            <article className="phase-block">
+              <p className="section-kicker">Room summary</p>
+              <h3 className="liquid-title mt-2 text-2xl">All 10 rounds are resolved</h3>
+            </article>
+          )}
+
+          <article className="phase-block">
+            <p className="section-kicker">Next move</p>
+            <h3 className="liquid-title mt-2 text-2xl">Run it back in a fresh room</h3>
+            <p className="body-copy mt-2">
+              Psyblr does not reuse finished rooms, so a rematch starts from a brand-new authoritative room code.
             </p>
           </article>
         </div>
-      ) : null}
+      </div>
     </section>
   );
 }
